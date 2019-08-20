@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/lib/pq"
-	"github.com/pivotal/mock-data/core"
-	"github.com/pivotal/mock-data/db/postgres"
+	"github.com/pivotal-legacy/mock-data/core"
+	"github.com/pivotal-legacy/mock-data/db/postgres"
 )
 
 // Global Variables

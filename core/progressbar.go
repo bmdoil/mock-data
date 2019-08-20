@@ -28,24 +28,18 @@ func ProgressBar(steps int, progressMsg string) {
 
 		// Prepending decorators
 		mpb.PrependDecorators(
-			decor.Elapsed(4, decor.DSyncSpace),
+			decor.Elapsed(4, decor.WCSyncSpace),
 		),
 
 		// Appending decorators
 		mpb.AppendDecorators(
-			decor.Percentage(5, 0),
-			decor.StaticName(name, len(name), 0),
+			decor.Percentage(),
+			decor.Name(name, decor.WC{W: len(name), C: decor.DidentRight}),
 		),
 	)
 }
 
 // Increment Progress bar
 func IncrementBar() {
-	bar.Incr(1)
-}
-
-
-// Close progress bar
-func CloseProgressBar() {
-	p.Stop()
+	bar.IncrBy(1)
 }
