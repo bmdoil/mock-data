@@ -36,8 +36,21 @@ type Engine struct {
 
 // A Table is an implementation of a database with a set of columns and datatypes
 type Table struct {
-	tabname string
-	columns map[string]string
+	tabname        string
+	partitiontable string
+	partition      []Partition
+	columns        map[string]string
+}
+
+type Partition struct {
+	relname        string
+	conname        string
+	partitiontype  string
+	colname        string
+	rangestart     string
+	rangeend       string
+	startinclusive bool
+	endinclusive   bool
 }
 
 // Main block

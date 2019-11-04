@@ -97,6 +97,9 @@ func dbColDataType() ([]Table, error) {
 	// Loop through the table list provided and collect the columns and datatypes
 	for _, v := range strings.Split(Connector.Table, ",") {
 		var tab Table
+		if err != nil {
+			return table, fmt.Errorf("Error extracting single table partition type: %v", err)
+		}
 		if DBEngine == "postgres" { // Use postgres specific query
 			rows, err = db.Query(postgres.PGColumnQry1(v))
 		} else { // Use greenplum, hdb query to extract the columns
@@ -105,6 +108,7 @@ func dbColDataType() ([]Table, error) {
 		if err != nil {
 			return table, fmt.Errorf("Cannot extracting the column info, error from the database: %v", err)
 		}
+
 		for rows.Next() {
 
 			var col string
@@ -206,9 +210,6 @@ func splitter(columns map[string]string, tabname string) error {
 		return err
 	}
 
-	// Close the Progress bar
-	core.CloseProgressBar()
-
 	return nil
 }
 
@@ -294,6 +295,48 @@ func MockPostgres() error {
 		return err
 	}
 
+	partitionTables := map[string]map[string]Partition{}
+	var rows *sql.Rows
+	rows, err = db.Query(postgres.GetAllCheckConstraints())
+	for rows.Next() {
+		var pt Partition
+		rows.Scan(&pt.relname, &pt.conname, &pt.partitiontype, &pt.colname, &pt.rangestart, &pt.rangeend, &pt.startinclusive, &pt.endinclusive)
+		//Partition table unique key is relname + columnname
+		//ey := pt.relname + ":" + pt.colname
+		partitionTables[pt.relname] = map[string]Partition{}
+		partitionTables[pt.relname][pt.partitiontype] = pt
+		//fmt.Printf("Printing pt struct:\n%#v\n\n\n", pt)
+	}
+	fmt.Printf("len: %#v\n", len(partitionTables))
+	fmt.Printf("Printing map of Partitions:\n %#v\n", partitionTables)
+
+	rows, err = db.Query(postgres.GPAllTablesQryPartitions())
+	var tab Table
+	for rows.Next() {
+		var columns *sql.Rows
+		rows.Scan(&tab.tabname, &tab.partitiontable)
+		columns, err = db.Query(postgres.PGColumnQry2(tab.tabname))
+		for columns.Next() {
+			var col string
+			var datatype string
+			var seqCol string = ""
+
+			err = columns.Scan(&col, &datatype, &seqCol)
+			if err != nil {
+				return fmt.Errorf("Error extracting the rows of the list of columns: %v", err)
+			}
+			if !strings.HasPrefix(seqCol, "nextval") {
+				if tab.columns == nil {
+					tab.columns = make(map[string]string)
+				}
+				tab.columns[col] = datatype
+			}
+
+		}
+
+		//fmt.Printf("%#v\n", tab)
+
+	}
 	// If the request is to load all table then, extract all tables
 	// and pass to the connector table argument.
 	if Connector.AllTables {

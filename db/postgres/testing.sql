@@ -159,10 +159,11 @@ SUBPARTITION TEMPLATE
 
 -- Get all check constraints
    SELECT p.partitionschemaname || '.' || p.partitiontablename relname,
-   c.conname, 
+   c.conname,
+   p.partitiontype, 
    a.attname colname,  
    TRIM (TRAILING '::date' from CAST (p.partitionrangestart as TEXT)) rangestart, 
-   TRIM (TRAILING '::date' from CAST (p.partitionrangeend as TEXT)) rangeend, 
+   TRIM (TRAILING '::date' from CAST (p.partitionrangeend as TEXT)) rangeend,
    p.partitionstartinclusive startinclusive, 
    p.partitionendinclusive endinclusive
     FROM pg_class cl 
