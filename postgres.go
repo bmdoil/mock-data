@@ -3,12 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/lib/pq"
 	"github.com/bmdoil/mock-data/core"
 	"github.com/bmdoil/mock-data/db/postgres"
+	"github.com/lib/pq"
 )
 
 // Global Variables
@@ -302,7 +301,7 @@ func MockPostgres() error {
 	}
 
 	//partitionTables := make(map[string][]Partition)
-	var rows *sql.Rows
+	/*var rows *sql.Rows
 
 	rows, err = db.Query(postgres.GPAllTablesQryPartitions()) // Get all tables
 	var tab Table
@@ -356,6 +355,7 @@ func MockPostgres() error {
 	}
 	fmt.Printf("Printing table struct:\n%#v\n\n\n", table)
 	os.Exit(0)
+	*/
 	// If the request is to load all table then, extract all tables
 	// and pass to the connector table argument.
 	if Connector.AllTables {

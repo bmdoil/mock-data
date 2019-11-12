@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
 	"github.com/bmdoil/mock-data/core"
 )
 
 // Connector struct
 type connector struct {
-	Engine                                  string
-	Db, Username, Password, Host, Table     string
-	Port, RowCount                          int
-	AllTables, IgnoreConstraints, Debug     bool
+	Engine                              string
+	Db, Username, Password, Host, Table string
+	Port, RowCount                      int
+	AllTables, IgnoreConstraints, Debug bool
 }
 
 // The connector
@@ -67,20 +68,20 @@ func ArgPaser() {
 
 	// If there is a command keyword provided then check to what is it and then parse the appropriate options
 	switch {
-		// MockD Version
-		case engineArgs == "version":
-			fmt.Printf("MockD Version: %s\n", version)
-			os.Exit(0)
-		// Help Menu
-		case engineArgs == "help":
-			ShowHelp()
-		// Postgres command parser
-		case core.StringContains(engineArgs, postgresEngines):
-			postgresFlag.Parse(os.Args[2:])
-		// If not of the list of supported engines, error out
-		default:
-			log.Errorf("%q is not valid database engine ...", os.Args[1])
-			ShowHelp()
+	// MockD Version
+	case engineArgs == "version":
+		fmt.Printf("MockD Version: %s\n", version)
+		os.Exit(0)
+	// Help Menu
+	case engineArgs == "help":
+		ShowHelp()
+	// Postgres command parser
+	case core.StringContains(engineArgs, postgresEngines):
+		postgresFlag.Parse(os.Args[2:])
+	// If not of the list of supported engines, error out
+	default:
+		log.Errorf("%q is not valid database engine ...", os.Args[1])
+		ShowHelp()
 	}
 
 	// All checks passed lets parse the command line arguments
