@@ -38,7 +38,7 @@ type Engine struct {
 type Table struct {
 	tabname        string
 	partitiontable string
-	partition      []Partition
+	partitions     []Partition
 	columns        map[string]string
 }
 

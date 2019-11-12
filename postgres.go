@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/lib/pq"
@@ -16,6 +17,11 @@ var (
 	db         *sql.DB
 	stmt       *sql.Stmt
 )
+
+func (tab *Table) AddPart(part Partition) []Partition {
+	tab.partitions = append(tab.partitions, part)
+	return tab.partitions
+}
 
 // Progress Database connection
 func dbConn() error {
@@ -295,27 +301,16 @@ func MockPostgres() error {
 		return err
 	}
 
-	partitionTables := map[string]map[string]Partition{}
+	//partitionTables := make(map[string][]Partition)
 	var rows *sql.Rows
-	rows, err = db.Query(postgres.GetAllCheckConstraints())
-	for rows.Next() {
-		var pt Partition
-		rows.Scan(&pt.relname, &pt.conname, &pt.partitiontype, &pt.colname, &pt.rangestart, &pt.rangeend, &pt.startinclusive, &pt.endinclusive)
-		//Partition table unique key is relname + columnname
-		//ey := pt.relname + ":" + pt.colname
-		partitionTables[pt.relname] = map[string]Partition{}
-		partitionTables[pt.relname][pt.partitiontype] = pt
-		//fmt.Printf("Printing pt struct:\n%#v\n\n\n", pt)
-	}
-	fmt.Printf("len: %#v\n", len(partitionTables))
-	fmt.Printf("Printing map of Partitions:\n %#v\n", partitionTables)
 
-	rows, err = db.Query(postgres.GPAllTablesQryPartitions())
+	rows, err = db.Query(postgres.GPAllTablesQryPartitions()) // Get all tables
 	var tab Table
-	for rows.Next() {
+	for rows.Next() { // For each returned row
 		var columns *sql.Rows
-		rows.Scan(&tab.tabname, &tab.partitiontable)
+		rows.Scan(&tab.tabname, &tab.partitiontable) // Get table name and PT type
 		columns, err = db.Query(postgres.PGColumnQry2(tab.tabname))
+
 		for columns.Next() {
 			var col string
 			var datatype string
@@ -332,11 +327,35 @@ func MockPostgres() error {
 				tab.columns[col] = datatype
 			}
 
+			//fmt.Printf("Printing table:\n%#v\n\n\n", tab)
+
 		}
+
+		var checks *sql.Rows
+		checks, err = db.Query(postgres.GetAllCheckConstraints())
+		for checks.Next() {
+			var pt Partition
+			checks.Scan(&pt.relname, &pt.conname, &pt.partitiontype, &pt.colname, &pt.rangestart, &pt.rangeend, &pt.startinclusive, &pt.endinclusive)
+			for _, v := range table {
+
+				if v.tabname == pt.relname {
+					//fmt.Printf("tabname: %v relname: %v\n", v.tabname, pt.relname)
+					//fmt.Printf("Add part %#v", pt)
+					v.AddPart(pt)
+					fmt.Printf("%#v", v)
+				}
+			}
+			//TODO load map of partition arrays
+
+		}
+		table = append(table, tab)
+		//fmt.Printf("len: %#v\n", len(partitionTables))
 
 		//fmt.Printf("%#v\n", tab)
 
 	}
+	fmt.Printf("Printing table struct:\n%#v\n\n\n", table)
+	os.Exit(0)
 	// If the request is to load all table then, extract all tables
 	// and pass to the connector table argument.
 	if Connector.AllTables {
