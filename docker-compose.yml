@@ -14,12 +14,13 @@ services:
       target: prod_img
     environment:
       - PGHOST=postgres
-      - PGDATABASE=gpadmin
-      - PGUSER=gpadmin
-      - PGPASS=gpadmin
+      - PGDATABASE=postgres
+      - PGUSER=postgres
+      - PGPASS=postgres
       - TABLE=foo
       - ENGINE=postgres
       - PGPORT=5432
+      - ROWS=1000
   
   postgres:
     build:
@@ -28,13 +29,8 @@ services:
     expose:
       - 5432
     environment:
-      - POSTGRES_USER=gpadmin
-      - POSTGRES_PASSWORD=gpadmin
-      - POSTGRES_DB=gpadmin
-      - PGDATA=/usr/local/var/postgres
-    volumes:
-      - pgdata:/usr/local/var/postgres
-volumes:
-  pgdata:
-    external: true
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB=postgres
+
     
