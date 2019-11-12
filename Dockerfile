@@ -22,4 +22,7 @@ ENTRYPOINT /mockd
 
 FROM alpine:3.7 as prod-env
 COPY --from=build-env /mockd /
-ENTRYPOINT /mockd
+ENV PGPORT 5432
+ENV PGUSER gpadmin
+ENV TABLE foo
+CMD ["sh", "-c", "/mockd greenplum -p ${PGPORT} -d ${PGUSER} -t ${TABLE} -n 10"]
