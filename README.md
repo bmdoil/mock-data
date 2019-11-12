@@ -73,7 +73,7 @@ OPTIONS:
 
 ### Users
 
-[Download](https://github.com/pivotal/mock-data/releases) the latest release and you're ready to go!
+[Download](https://github.com/bmdoil/mock-data/releases) the latest release and you're ready to go!
 
 **NOTE:** if you have the datatype UUID defined on the table, make sure you have the execute "uuidgen" installed on the OS.  
 
@@ -82,13 +82,13 @@ OPTIONS:
 + Clone the github repo
 
 ```
-git clone https://github.com/pivotal/mock-data.git
+git clone https://github.com/bmdoil/mock-data.git
 ```
 
 or use "go get" to download the source after setting the GOPATH
 
 ```
-go get github.com/pivotal/mock-data
+go get github.com/bmdoil/mock-data
 ```
 
 + Download all the dependencies
@@ -146,7 +146,7 @@ Usage of postgres:
 bin/mockd-mac <dbengine> -n <total rows> -u <user> -d <database> -t <table>
 ```
 
-![single table](https://github.com/pivotal/mock-data/blob/master/img/singletable.gif)
+![single table](https://github.com/bmdoil/mock-data/blob/master/img/singletable.gif)
 
 + Mock multiple table with random data
 
@@ -154,7 +154,7 @@ bin/mockd-mac <dbengine> -n <total rows> -u <user> -d <database> -t <table>
 bin/mockd-mac <dbengine> -n <total rows> -u <user> -d <database> -t <table1>,<table2>,....
 ```
 
-![multiple table](https://github.com/pivotal/mock-data/blob/master/img/multipletable.gif)
+![multiple table](https://github.com/bmdoil/mock-data/blob/master/img/multipletable.gif)
 
 + Mock entire database
 
@@ -162,7 +162,7 @@ bin/mockd-mac <dbengine> -n <total rows> -u <user> -d <database> -t <table1>,<ta
 bin/mockd-mac <dbengine> -n <total rows> -u <user> -d <database> -x
 ```
 
-![All Database](https://github.com/pivotal/mock-data/blob/master/img/alldb.gif)
+![All Database](https://github.com/bmdoil/mock-data/blob/master/img/alldb.gif)
 
 # Known Issues
 
@@ -173,7 +173,7 @@ bin/mockd-mac <dbengine> -n <total rows> -u <user> -d <database> -x
 
 # Collaborate
 
-You can sumbit issues or pull request via [github](https://github.com/pivotal/mock-data) and we will try our best to fix them.
+You can sumbit issues or pull request via [github](https://github.com/bmdoil/mock-data) and we will try our best to fix them.
 
 # Authors
 

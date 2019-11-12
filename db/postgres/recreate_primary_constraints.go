@@ -4,7 +4,7 @@ import (
 	"strings"
 	"fmt"
 	"database/sql"
-	"github.com/pivotal/mock-data/core"
+	"github.com/bmdoil/mock-data/core"
 )
 
 // Fix Primary Key

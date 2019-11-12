@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/op/go-logging"
-	"github.com/pivotal/mock-data/core"
+	"github.com/bmdoil/mock-data/core"
 )
 
 var (

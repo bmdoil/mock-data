@@ -1,4 +1,4 @@
-<!-- High five for submitting a report! If you found an issue with the mock-data, please visit the [releases page](https://github.com/pivotal/mock-data/releases) and confirm it's not fixed already in the latest release. To avoid additional back and forth, please include the following details as relevant. -->
+<!-- High five for submitting a report! If you found an issue with the mock-data, please visit the [releases page](https://github.com/bmdoil/mock-data/releases) and confirm it's not fixed already in the latest release. To avoid additional back and forth, please include the following details as relevant. -->
 ## Command  
 
 <!-- e.g. `mockd-mac postgres -d <database-name> -p <port-number> -u <user-name> -x -n 100` -->

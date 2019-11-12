@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pivotal/mock-data/core"
+	"github.com/bmdoil/mock-data/core"
 )
 
 type constraint struct {

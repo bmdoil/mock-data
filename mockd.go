@@ -5,7 +5,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/op/go-logging"
-	"github.com/pivotal/mock-data/core"
+	"github.com/bmdoil/mock-data/core"
 )
 
 // Version of Mock-data

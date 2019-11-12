@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"database/sql"
-	"github.com/pivotal/mock-data/core"
+	"github.com/bmdoil/mock-data/core"
 )
 
 //
