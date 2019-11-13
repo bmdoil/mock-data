@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/bmdoil/mock-data/core"
@@ -172,6 +171,19 @@ func extractor(table_info []Table) error {
 	return nil
 }
 
+func loadData(tables map[string]*Table) error {
+	if !Connector.IgnoreConstraints {
+		log.Infof("Backup up all the constraint in the database: \"%s\"", Connector.Db)
+		err := postgres.BackupDDL(db, ExecutionTimestamp)
+		if err != nil {
+			return err
+		}
+	}
+	//Drop constraints
+
+	return nil
+}
+
 // Segregate tables, columns & datatypes to load data
 func splitter(columns map[string]string, tabname string) error {
 
@@ -278,28 +290,10 @@ DataTypePickerLoop: // Label the loop to break, if there is a datatype that we d
 
 }
 
-// Main postgres data mocker
-func MockPostgres() error {
-
-	var tables = make(map[string]*Table)
-	log.Infof("Attempting to establish a connection to the %s database", DBEngine)
-
-	// Establishing a connection to the database
-	err := dbConn()
-	if err != nil {
-		return err
-	}
-
-	// Check if we can query the database and get the version of the database in the meantime
-	err = dbVersion()
-	if err != nil {
-		return err
-	}
-
-	//partitionTables := make(map[string][]Partition)
+func dbGetAllTables() (map[string]*Table, error) {
 	var rows *sql.Rows
-
-	rows, err = db.Query(postgres.GPAllTablesQryPartitions()) // Get all tables
+	var tables = make(map[string]*Table)
+	rows, err := db.Query(postgres.GPAllTablesQryPartitions()) // Get all tables
 
 	for rows.Next() { // For each returned row
 		var tab = new(Table)
@@ -314,7 +308,7 @@ func MockPostgres() error {
 
 			err = columns.Scan(&col, &datatype, &seqCol)
 			if err != nil {
-				return fmt.Errorf("Error extracting the rows of the list of columns: %v", err)
+				return nil, fmt.Errorf("Error extracting the rows of the list of columns: %v", err)
 			}
 			if !strings.HasPrefix(seqCol, "nextval") {
 				if tab.columns == nil {
@@ -338,7 +332,7 @@ func MockPostgres() error {
 		var pt Partition
 		err = rows.Scan(&pt.relname, &pt.conname, &pt.partitiontype, &pt.colname, &pt.rangestart, &pt.rangeend, &pt.startinclusive, &pt.endinclusive)
 		if err != nil {
-			return fmt.Errorf("Extract PT is broken: %v", err)
+			return nil, fmt.Errorf("Extract PT is broken: %v", err)
 		}
 		key := pt.relname.String + ":" + pt.colname.String
 		ptTable[key] = pt
@@ -362,32 +356,50 @@ func MockPostgres() error {
 		tables[rel].partitions[ptKey] = ptTab
 
 	}
+	return tables, nil
+}
 
+// Main postgres data mocker
+func MockPostgres() error {
+
+	var tables = make(map[string]*Table)
+	log.Infof("Attempting to establish a connection to the %s database", DBEngine)
+
+	// Establishing a connection to the database
+	err := dbConn()
+	if err != nil {
+		return err
+	}
+
+	// Check if we can query the database and get the version of the database in the meantime
+	err = dbVersion()
+	if err != nil {
+		return err
+	}
+
+	if Connector.AllTables {
+		tables, err = dbGetAllTables()
+		if err != nil {
+			return err
+		}
+
+	}
+	log.Debugf("%#v", tables)
 	for k, v := range tables {
 		fmt.Printf("name:\t%#v contents:\t%#v\n\n\n", k, v)
 	}
 
-	//
-	//fmt.Printf("%#v\n", ptTable)
-	os.Exit(0)
-	/*
-			for i := 0; i < 5; i++ {
-				fmt.Printf("table name: %v Partitions: %#v\n\n\n", table[i].tabname, table[i].partitions)
-			}
-
-
-		//fmt.Printf("Printing table struct:\n%#v\n\n\n", table)
-
-		// If the request is to load all table then, extract all tables
-		// and pass to the connector table argument.
-		if Connector.AllTables {
-			tableList, err := dbExtractTables()
-			if err != nil {
-				return err
-			}
-			Connector.Table = strings.Join(tableList, ",")
+	// If the request is to load all table then, extract all tables
+	// and pass to the connector table argument.
+	if Connector.AllTables {
+		tableList, err := dbExtractTables()
+		if err != nil {
+			return err
 		}
+		Connector.Table = strings.Join(tableList, ",")
+	}
 
+	/*
 		// Extract the columns and datatypes from the table defined on the connector table.
 		if Connector.Table != "" { // if there are only tables in the connector table variables
 			table, err = dbColDataType()
@@ -397,8 +409,8 @@ func MockPostgres() error {
 		}
 
 		// Build data for all the column and datatypes & then commit data
-		if len(table) > 0 { // if there are tables found, then proceed
-			err = extractor(table)
+		if len(tables) > 0 { // if there are tables found, then proceed
+			err = extractor(tables)
 			if err != nil {
 				// TODO: need to fix constraints here as well.
 				log.Error("Unexpected error encountered by MockD..")
@@ -425,8 +437,9 @@ func MockPostgres() error {
 			log.Warning("These tables (below) are skipped, since it contain unsupported datatypes")
 			log.Warningf("%s", strings.Join(skippedTab, ","))
 		}
+
+		// Close the database connection
 	*/
-	// Close the database connection
 	defer db.Close()
 
 	return nil
