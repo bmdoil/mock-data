@@ -326,7 +326,7 @@ func MockPostgres() error {
 			//fmt.Printf("Printing table:\n%#v\n\n\n", tab)
 
 		}
-		table[tab.tabname] = tab
+		tables[tab.tabname] = tab
 
 	}
 	//fmt.Printf("table: %v columns: %#v\n", tab.tabname, tab.columns)

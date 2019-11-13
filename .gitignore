@@ -17,3 +17,5 @@
 mockd_*.sql
 .vscode
 
+# Compiled test binary
+mockd-test
