@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/bmdoil/mock-data/core"
@@ -16,11 +17,6 @@ var (
 	db         *sql.DB
 	stmt       *sql.Stmt
 )
-
-func (tab *Table) AddPart(part Partition) []Partition {
-	tab.partitions = append(tab.partitions, part)
-	return tab.partitions
-}
 
 // Progress Database connection
 func dbConn() error {
@@ -285,7 +281,7 @@ DataTypePickerLoop: // Label the loop to break, if there is a datatype that we d
 // Main postgres data mocker
 func MockPostgres() error {
 
-	var table []Table
+	var tables = make(map[string]*Table)
 	log.Infof("Attempting to establish a connection to the %s database", DBEngine)
 
 	// Establishing a connection to the database
@@ -301,11 +297,12 @@ func MockPostgres() error {
 	}
 
 	//partitionTables := make(map[string][]Partition)
-	/*var rows *sql.Rows
+	var rows *sql.Rows
 
 	rows, err = db.Query(postgres.GPAllTablesQryPartitions()) // Get all tables
-	var tab Table
+
 	for rows.Next() { // For each returned row
+		var tab = new(Table)
 		var columns *sql.Rows
 		rows.Scan(&tab.tabname, &tab.partitiontable) // Get table name and PT type
 		columns, err = db.Query(postgres.PGColumnQry2(tab.tabname))
@@ -324,86 +321,111 @@ func MockPostgres() error {
 					tab.columns = make(map[string]string)
 				}
 				tab.columns[col] = datatype
-			}
 
+			}
 			//fmt.Printf("Printing table:\n%#v\n\n\n", tab)
 
 		}
-
-		var checks *sql.Rows
-		checks, err = db.Query(postgres.GetAllCheckConstraints())
-		for checks.Next() {
-			var pt Partition
-			checks.Scan(&pt.relname, &pt.conname, &pt.partitiontype, &pt.colname, &pt.rangestart, &pt.rangeend, &pt.startinclusive, &pt.endinclusive)
-			for _, v := range table {
-
-				if v.tabname == pt.relname {
-					//fmt.Printf("tabname: %v relname: %v\n", v.tabname, pt.relname)
-					//fmt.Printf("Add part %#v", pt)
-					v.AddPart(pt)
-					fmt.Printf("%#v", v)
-				}
-			}
-			//TODO load map of partition arrays
-
-		}
-		table = append(table, tab)
-		//fmt.Printf("len: %#v\n", len(partitionTables))
-
-		//fmt.Printf("%#v\n", tab)
+		table[tab.tabname] = tab
 
 	}
-	fmt.Printf("Printing table struct:\n%#v\n\n\n", table)
-	os.Exit(0)
+	//fmt.Printf("table: %v columns: %#v\n", tab.tabname, tab.columns)
+
+	var ptTable = make(map[string]Partition)
+
+	rows, err = db.Query(postgres.GetAllCheckConstraints())
+	for rows.Next() {
+		var pt Partition
+		err = rows.Scan(&pt.relname, &pt.conname, &pt.partitiontype, &pt.colname, &pt.rangestart, &pt.rangeend, &pt.startinclusive, &pt.endinclusive)
+		if err != nil {
+			return fmt.Errorf("Extract PT is broken: %v", err)
+		}
+		key := pt.relname.String + ":" + pt.colname.String
+		ptTable[key] = pt
+		//fmt.Printf("pt: %#v\n", pt)
+
+		//TODO load map of partition arrays
+
+	}
+	/*
+		For each partition table, get partition table relname
+		If that table has no Partitions yet, init the map of Partitions
+		Assign the partition table to table[tablename].partitions[partitionkey]
+		partitionkey is concat of partitionname:colname
 	*/
-	// If the request is to load all table then, extract all tables
-	// and pass to the connector table argument.
-	if Connector.AllTables {
-		tableList, err := dbExtractTables()
-		if err != nil {
-			return err
+	for ptKey, ptTab := range ptTable {
+		rel := ptTab.relname.String
+		if tables[rel].partitions == nil {
+			tables[rel].partitions = make(map[string]Partition)
 		}
-		Connector.Table = strings.Join(tableList, ",")
+
+		tables[rel].partitions[ptKey] = ptTab
+
 	}
 
-	// Extract the columns and datatypes from the table defined on the connector table.
-	if Connector.Table != "" { // if there are only tables in the connector table variables
-		table, err = dbColDataType()
-		if err != nil {
-			return err
-		}
+	for k, v := range tables {
+		fmt.Printf("name:\t%#v contents:\t%#v\n\n\n", k, v)
 	}
 
-	// Build data for all the column and datatypes & then commit data
-	if len(table) > 0 { // if there are tables found, then proceed
-		err = extractor(table)
-		if err != nil {
-			// TODO: need to fix constraints here as well.
-			log.Error("Unexpected error encountered by MockD..")
-			return err
-		}
+	//
+	//fmt.Printf("%#v\n", ptTable)
+	os.Exit(0)
+	/*
+			for i := 0; i < 5; i++ {
+				fmt.Printf("table name: %v Partitions: %#v\n\n\n", table[i].tabname, table[i].partitions)
+			}
 
-		// Recreate all the constraints of the table unless user wants to ignore it
-		if !Connector.IgnoreConstraints {
-			err = postgres.FixConstraints(db, ExecutionTimestamp, Connector.Debug)
+
+		//fmt.Printf("Printing table struct:\n%#v\n\n\n", table)
+
+		// If the request is to load all table then, extract all tables
+		// and pass to the connector table argument.
+		if Connector.AllTables {
+			tableList, err := dbExtractTables()
 			if err != nil {
-				backupFiles, _ := core.ListFile(".", "*_"+ExecutionTimestamp+".sql")
-				log.Errorf("Some constraints creation failed (highlighted above), Will need your intervention to fix those constraints")
-				log.Errorf("All the DDL are saved in the files: \n%v", strings.Join(backupFiles, "\n"))
+				return err
+			}
+			Connector.Table = strings.Join(tableList, ",")
+		}
+
+		// Extract the columns and datatypes from the table defined on the connector table.
+		if Connector.Table != "" { // if there are only tables in the connector table variables
+			table, err = dbColDataType()
+			if err != nil {
 				return err
 			}
 		}
 
-	} else { // We didn't obtain any table from the database ( eg.s fresh DB's or User gave a view name etc )
-		log.Warning("No table's available to load the mock data, closing the program")
-	}
+		// Build data for all the column and datatypes & then commit data
+		if len(table) > 0 { // if there are tables found, then proceed
+			err = extractor(table)
+			if err != nil {
+				// TODO: need to fix constraints here as well.
+				log.Error("Unexpected error encountered by MockD..")
+				return err
+			}
 
-	// If there is tables that are skipped, report to the user.
-	if len(skippedTab) > 0 {
-		log.Warning("These tables (below) are skipped, since it contain unsupported datatypes")
-		log.Warningf("%s", strings.Join(skippedTab, ","))
-	}
+			// Recreate all the constraints of the table unless user wants to ignore it
+			if !Connector.IgnoreConstraints {
+				err = postgres.FixConstraints(db, ExecutionTimestamp, Connector.Debug)
+				if err != nil {
+					backupFiles, _ := core.ListFile(".", "*_"+ExecutionTimestamp+".sql")
+					log.Errorf("Some constraints creation failed (highlighted above), Will need your intervention to fix those constraints")
+					log.Errorf("All the DDL are saved in the files: \n%v", strings.Join(backupFiles, "\n"))
+					return err
+				}
+			}
 
+		} else { // We didn't obtain any table from the database ( eg.s fresh DB's or User gave a view name etc )
+			log.Warning("No table's available to load the mock data, closing the program")
+		}
+
+		// If there is tables that are skipped, report to the user.
+		if len(skippedTab) > 0 {
+			log.Warning("These tables (below) are skipped, since it contain unsupported datatypes")
+			log.Warningf("%s", strings.Join(skippedTab, ","))
+		}
+	*/
 	// Close the database connection
 	defer db.Close()
 

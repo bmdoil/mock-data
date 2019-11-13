@@ -1,11 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"os"
 
+	"github.com/bmdoil/mock-data/core"
 	_ "github.com/lib/pq"
 	"github.com/op/go-logging"
-	"github.com/bmdoil/mock-data/core"
 )
 
 // Version of Mock-data
@@ -38,19 +39,19 @@ type Engine struct {
 type Table struct {
 	tabname        string
 	partitiontable string
-	partitions     []Partition
+	partitions     map[string]Partition
 	columns        map[string]string
 }
 
 type Partition struct {
-	relname        string
-	conname        string
-	partitiontype  string
-	colname        string
-	rangestart     string
-	rangeend       string
-	startinclusive bool
-	endinclusive   bool
+	relname        sql.NullString `json:"relname"`
+	conname        sql.NullString `json:"conname"`
+	partitiontype  sql.NullString `json:"partitiontype"`
+	colname        sql.NullString `json:"colname"`
+	rangestart     sql.NullString `json:"rangestart"`
+	rangeend       sql.NullString `json:"rangend"`
+	startinclusive sql.NullBool   `json:"startinclusive"`
+	endinclusive   sql.NullBool   `json:"endinclusive"`
 }
 
 // Main block
