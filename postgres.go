@@ -36,7 +36,7 @@ func dbVersion() error {
 	// Obtain the version of the database
 	rows, err := db.Query(postgres.PGVersion())
 	if err != nil {
-		return fmt.Errorf("Cannot extracting version, error from the database: %v", err)
+		return fmt.Errorf("Cannot extract version, error from the database: %v", err)
 	}
 
 	// Store the information of the version onto a variable
@@ -171,16 +171,7 @@ func extractor(table_info []Table) error {
 	return nil
 }
 
-func loadData(tables map[string]*Table) error {
-	if !Connector.IgnoreConstraints {
-		log.Infof("Backup up all the constraint in the database: \"%s\"", Connector.Db)
-		err := postgres.BackupDDL(db, ExecutionTimestamp)
-		if err != nil {
-			return err
-		}
-	}
-	//Drop constraints
-
+func prepData(tables map[string]*Table) error {
 	return nil
 }
 
@@ -290,7 +281,7 @@ DataTypePickerLoop: // Label the loop to break, if there is a datatype that we d
 
 }
 
-func dbGetAllTables() (map[string]*Table, error) {
+func dbExtractGPTables() (map[string]*Table, error) {
 	var rows *sql.Rows
 	var tables = make(map[string]*Table)
 	rows, err := db.Query(postgres.GPAllTablesQryPartitions()) // Get all tables
@@ -299,6 +290,7 @@ func dbGetAllTables() (map[string]*Table, error) {
 		var tab = new(Table)
 		var columns *sql.Rows
 		rows.Scan(&tab.tabname, &tab.partitiontable) // Get table name and PT type
+
 		columns, err = db.Query(postgres.PGColumnQry2(tab.tabname))
 
 		for columns.Next() {
@@ -317,17 +309,15 @@ func dbGetAllTables() (map[string]*Table, error) {
 				tab.columns[col] = datatype
 
 			}
-			//fmt.Printf("Printing table:\n%#v\n\n\n", tab)
 
 		}
 		tables[tab.tabname] = tab
 
 	}
-	//fmt.Printf("table: %v columns: %#v\n", tab.tabname, tab.columns)
-
+	// Begin parsing PTs
 	var ptTable = make(map[string]Partition)
 
-	rows, err = db.Query(postgres.GetAllCheckConstraints())
+	rows, err = db.Query(postgres.GetAllPTCheckConstraints())
 	for rows.Next() {
 		var pt Partition
 		err = rows.Scan(&pt.relname, &pt.conname, &pt.partitiontype, &pt.colname, &pt.rangestart, &pt.rangeend, &pt.startinclusive, &pt.endinclusive)
@@ -336,9 +326,6 @@ func dbGetAllTables() (map[string]*Table, error) {
 		}
 		key := pt.relname.String + ":" + pt.colname.String
 		ptTable[key] = pt
-		//fmt.Printf("pt: %#v\n", pt)
-
-		//TODO load map of partition arrays
 
 	}
 	/*
@@ -378,27 +365,34 @@ func MockPostgres() error {
 	}
 
 	if Connector.AllTables {
-		tables, err = dbGetAllTables()
-		if err != nil {
-			return err
+		if Connector.Engine == "greenplum" {
+			tables, err = dbExtractGPTables()
+			if err != nil {
+				return err
+			}
+		} else { //postgres
+			tableList, err := dbExtractTables()
+			if err != nil {
+				return err
+			}
+			Connector.Table = strings.Join(tableList, ",")
 		}
 
 	}
-	log.Debugf("%#v", tables)
-	for k, v := range tables {
-		fmt.Printf("name:\t%#v contents:\t%#v\n\n\n", k, v)
+	/*
+		log.Debugf("%#v", tables)
+		for k, v := range tables {
+			log.Debugf("name:\t%#v contents:\t%#v\n\n\n", k, v)
+		}
+	*/
+
+	err = prepData(tables)
+	if err != nil {
+		return err
 	}
 
 	// If the request is to load all table then, extract all tables
 	// and pass to the connector table argument.
-	if Connector.AllTables {
-		tableList, err := dbExtractTables()
-		if err != nil {
-			return err
-		}
-		Connector.Table = strings.Join(tableList, ",")
-	}
-
 	/*
 		// Extract the columns and datatypes from the table defined on the connector table.
 		if Connector.Table != "" { // if there are only tables in the connector table variables

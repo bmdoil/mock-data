@@ -44,14 +44,14 @@ type Table struct {
 }
 
 type Partition struct {
-	relname        sql.NullString `json:"relname"`
-	conname        sql.NullString `json:"conname"`
-	partitiontype  sql.NullString `json:"partitiontype"`
-	colname        sql.NullString `json:"colname"`
-	rangestart     sql.NullString `json:"rangestart"`
-	rangeend       sql.NullString `json:"rangend"`
-	startinclusive sql.NullBool   `json:"startinclusive"`
-	endinclusive   sql.NullBool   `json:"endinclusive"`
+	Relname        sql.NullString `json:"relname"`
+	Conname        sql.NullString `json:"conname"`
+	Partitiontype  sql.NullString `json:"partitiontype"`
+	Colname        sql.NullString `json:"colname"`
+	Rangestart     sql.NullString `json:"rangestart"`
+	Rangeend       sql.NullString `json:"rangend"`
+	Startinclusive sql.NullBool   `json:"startinclusive"`
+	Endinclusive   sql.NullBool   `json:"endinclusive"`
 }
 
 // Main block

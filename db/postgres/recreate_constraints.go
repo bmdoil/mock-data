@@ -3,8 +3,9 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"github.com/op/go-logging"
+
 	"github.com/bmdoil/mock-data/core"
+	"github.com/op/go-logging"
 )
 
 var (
@@ -21,26 +22,26 @@ func FixConstraints(db *sql.DB, timestamp string, debug bool) error {
 		log.Infof("Checking for any %s KEYS, fixing them if there is any violations", v)
 		for _, con := range savedConstraints[v] {
 			switch {
-				case v == "PRIMARY":
-					err := fixPKey(db, con, v, debug)
-					if err != nil {
-						return err
-					}
-				case v == "UNIQUE": // Run the same logic as primary key
-					err := fixPKey(db, con, v, debug)
-					if err != nil {
-						return err
-					}
-				case v == "CHECK":
-					err := fixCheck(db, con)
-					if err != nil {
-						return err
-					}
-				case v == "FOREIGN":
-					err := fixFKey(db, con, debug)
-					if err != nil {
-						return err
-					}
+			case v == "PRIMARY":
+				err := fixPKey(db, con, v, debug)
+				if err != nil {
+					return err
+				}
+			case v == "UNIQUE": // Run the same logic as primary key
+				err := fixPKey(db, con, v, debug)
+				if err != nil {
+					return err
+				}
+			case v == "CHECK":
+				err := fixCheck(db, con)
+				if err != nil {
+					return err
+				}
+			case v == "FOREIGN":
+				err := fixFKey(db, con, debug)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -61,7 +62,7 @@ func recreateAllConstraints(db *sql.DB, timestamp string, debug bool) (bool, err
 	log.Info("Starting to recreating all the constraints of the table ...")
 
 	// list the backup files collected.
-	for _, con := range constraints {
+	for _, con := range Constraints {
 		backupFile, err := core.ListFile(".", "*_"+con+"_"+timestamp+".sql")
 		if err != nil {
 			return AnyErrors, fmt.Errorf("Error in getting the list of backup files: %v", err)

@@ -14,7 +14,8 @@ type constraint struct {
 
 var (
 	savedConstraints = map[string][]constraint{"PRIMARY": {}, "CHECK": {}, "UNIQUE": {}, "FOREIGN": {}}
-	constraints      = []string{"p", "f", "u", "c"}
+	Constraints      = []string{"p", "f", "u", "c"}
+	PTConstraints    = []string{"u", "p", "f"}
 	ignoreErr        = []string{
 		"pq: multiple primary keys for table",
 		"already exists"}
@@ -42,8 +43,8 @@ func BackupDDL(db *sql.DB, timestamp string) error {
 // Backup all the constraints
 func backupConstraints(db *sql.DB, timestamp string) error {
 
-	for _, constr := range constraints {
-		filename := "mockd_constriant_backup_" + constr + "_" + timestamp + ".sql"
+	for _, constr := range Constraints {
+		filename := "mockd_constraint_backup_" + constr + "_" + timestamp + ".sql"
 		rows, err := db.Query(GetPGConstraintDDL(constr))
 		for rows.Next() {
 			var table, conname, conkey string
@@ -122,7 +123,7 @@ func RemoveConstraints(db *sql.DB, table string) error {
 		// Scan and store the rows
 		err = rows.Scan(&tab, &conname, &concol, &contype)
 		if err != nil {
-			return fmt.Errorf("Error extracting all the constriant list on the table: %v", err)
+			return fmt.Errorf("Error extracting all the constraint list on the table: %v", err)
 		}
 
 		// Generate the DROP DDL command

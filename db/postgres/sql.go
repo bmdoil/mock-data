@@ -131,7 +131,7 @@ func GetPartitionTables() string {
 		"partitioneveryclause everyclause," +
 		"FROM	 pg_catalog.pg_partitions"
 }
-func GetAllCheckConstraints() string {
+func GetAllPTCheckConstraints() string {
 	return "SELECT p.partitionschemaname || '.' || p.partitiontablename relname, " +
 		"c.conname, " +
 		"p.partitiontype, " +
@@ -146,52 +146,6 @@ func GetAllCheckConstraints() string {
 		"JOIN pg_constraint c on cl.oid=c.conrelid " +
 		"WHERE a.attnum = ANY (c.conkey) and c.contype='c' " +
 		"ORDER BY conname desc;"
-}
-
-/*
-schema
-relname
-conname
-colname
-rangestart
-rangeend
-startinclusive
-endinclusive
-*/
-func GetRangeConstraints() string {
-	return "   SELECT p.partitionschemaname schema, " +
-		"	p.partitiontablename relname, " +
-		"	c.conname, " +
-		"	a.attname colname, " +
-		"	TRIM (TRAILING '::date' from CAST (p.partitionrangestart as TEXT)) rangestart, " +
-		"	TRIM (TRAILING '::date' from CAST (p.partitionrangeend as TEXT)) rangeend, " +
-		"	p.partitionstartinclusive startinclusive, " +
-		"	p.partitionendinclusive endinclusive " +
-		"	FROM pg_class cl " +
-		"   JOIN pg_partitions p on cl.relname=p.partitiontablename " +
-		"   JOIN pg_attribute a on cl.oid=a.attrelid " +
-		"   JOIN pg_constraint c on cl.oid=c.conrelid " +
-		"   WHERE a.attnum = ANY (c.conkey) and c.contype='c' and p.partitiontype='range'"
-}
-
-/*
-schema
-relname
-conname
-colname
-*/
-func GetListConstraints() string {
-	return "   SELECT p.partitionschemaname schema, " +
-		"	p.partitiontablename relname, " +
-		"	c.conname, " +
-		"	a.attname colname, " +
-		"	FROM pg_class cl " +
-		"   JOIN pg_partitions p on cl.relname=p.partitiontablename " +
-		"   JOIN pg_attribute a on cl.oid=a.attrelid " +
-		"   JOIN pg_constraint c on cl.oid=c.conrelid " +
-		"   WHERE a.attnum = ANY (c.conkey)" +
-		"   AND c.contype='c'" +
-		"   AND p.partitiontype='list'"
 }
 
 // Save all the DDL of the constraint ( like PK(p), FK(f), CK(c), UK(u) )
@@ -238,6 +192,40 @@ func GetConstraintsPertab(tabname string) string {
 		"       AND conrelid = c.oid " +
 		"       AND n.oid = c.relnamespace " +
 		"       AND contype IN ('u','f','c','p') " +
+		"       UNION " +
+		"       SELECT schemaname || '.' || tablename tablename, " +
+		"       	   indexname conname, " +
+		"                 indexdef concol, " +
+		"       	   'index' contype " +
+		"       FROM   pg_indexes  " +
+		"       WHERE  schemaname IN (SELECT nspname  " +
+		"       FROM   pg_namespace  " +
+		"       WHERE  nspname NOT IN (  " +
+		"       'pg_catalog',  " +
+		"       'information_schema', " +
+		"       'pg_aoseg', " +
+		"       'gp_toolkit', " +
+		"       'pg_toast', 'pg_bitmapindex' ))  " +
+		"       AND indexdef LIKE 'CREATE UNIQUE%' " +
+		"       AND schemaname || '.' || tablename = '" + tabname + "' " +
+		") a ORDER BY contype" // Ensuring the constraint remains on top
+
+}
+
+func GetConstraints(tabname string, constraints []string) string {
+	conList := strings.Join(constraints, ",")
+	return "SELECT * FROM ( " +
+		"       SELECT n.nspname || '.' || c.relname tablename, " +
+		"       	con.conname conname, " +
+		"              pg_catalog.pg_get_constraintdef(con.oid, true) concol," +
+		"              'constriant' contype " +
+		"       FROM  pg_catalog.pg_class c, " +
+		"       	  pg_catalog.pg_constraint con, " +
+		"       	  pg_namespace n " +
+		"       WHERE  c.oid = '" + tabname + "'::regclass " +
+		"       AND conrelid = c.oid " +
+		"       AND n.oid = c.relnamespace " +
+		"       AND contype IN ('" + conList + "') " +
 		"       UNION " +
 		"       SELECT schemaname || '.' || tablename tablename, " +
 		"       	   indexname conname, " +
